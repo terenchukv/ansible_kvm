@@ -7,7 +7,7 @@
 
 # Usage
 - Use ```initial.yaml``` playbook for KVM host provision. Can run localy or from remote host.
-- ```vm_create.yaml`` - create new VM. Playbook run bash script with cloud-init configuration. Check [vm_conf.j2](./templates/vm_conf.j2)
+- ```vm_create.yaml``` - create new VM. Playbook run bash script with cloud-init configuration. Check [vm_conf.j2](./templates/vm_conf.j2)
 ### NOTE! put your public key to vm_conf.j2 in cloud-init ```ssh_authorized_keys``` block.
 - ```vm_provision.yaml`` - install Wordpress in installed VMs.
 
