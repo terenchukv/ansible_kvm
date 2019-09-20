@@ -10,8 +10,8 @@
       vars:
         pub_key: "{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
       vars_files:
-        - vars/vms_vars.yaml
-        - vars/docker_vars.yaml
+        - roles/vm/vars/vms_vars.yaml
+        - roles/vm/vars/docker_vars.yaml
 
 - name: vm provision
   user: centos
