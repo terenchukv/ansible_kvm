@@ -1,0 +1,6 @@
+---
+
+mysql_root_pass: 
+wp_database:
+wp_db_user: 
+wp_db_pass:

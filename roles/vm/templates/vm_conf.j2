@@ -1,0 +1,253 @@
+#!/bin/bash
+
+# Directory to store images
+DIR=/opt/virt/images
+
+# Location of cloud image
+IMAGE=$DIR/CentOS-7-x86_64-GenericCloud.qcow2
+
+# Amount of RAM in MB
+MEM=768
+
+# Number of virtual CPUs
+CPUS=1
+
+# Cloud init files
+USER_DATA=user-data
+META_DATA=meta-data
+
+# First VM vars
+CI1_ISO=$1-cidata.iso
+DISK1=$1.qcow2
+
+# Second VM vars
+CI2_ISO=$2-cidata.iso
+DISK2=$2.qcow2
+
+# Bridge for VMs
+BRIDGE=virbr0
+
+# Start clean
+rm -rf $DIR/$1
+mkdir -p $DIR/$1
+
+rm -rf $DIR/$2
+mkdir -p $DIR/$2
+
+#######################################################################
+# First VM
+#######################################################################
+pushd $DIR/$1 > /dev/null
+
+    # Create log file
+    touch $1.log
+
+    # Remove domain with the same name
+    virsh destroy $1 >> $1.log 2>&1
+    virsh undefine $1 >> $1.log 2>&1
+
+    # cloud-init config: set hostname, remove cloud-init package,
+    # and add ssh-key
+    cat > $USER_DATA << _EOF_
+#cloud-config
+
+# Hostname management
+preserve_hostname: False
+hostname: $1
+fqdn: $1.example.local
+
+# User managment
+users:
+  - default
+  - name: centos
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    groups: wheel,adm,systemd-journal
+    ssh_pwauth: True
+    ssh_authorized_keys:
+      - {{ pub_key }} 
+
+# networking
+write_files: 
+- content: |
+      DEVICE=eth0
+      BOOTPROTO=none
+      ONBOOT=yes
+      IPADDR={{ vm1_ip }}
+      NETMASK=255.255.255.0
+      GATEWAY=192.168.122.1
+  path: /etc/sysconfig/network-scripts/ifcfg-eth0
+
+- content: |
+      [main]
+      cachedir=/var/cache/yum/$basearch/$releasever
+      keepcache=0
+      debuglevel=2
+      logfile=/var/log/yum.log
+      exactarch=1
+      obsoletes=1
+      gpgcheck=1
+      plugins=1
+      installonly_limit=5
+      bugtracker_url=http://bugs.centos.org/set_project.php?project_id=23&ref=http://bugs.centos.org/bug_report_page.php?category=yum
+      distroverpkg=centos-release
+      proxy=http://172.22.86.10:8888
+  path: /etc/yum.conf
+
+# Configure where output will go
+output:
+  all: ">> /var/log/cloud-init.log"
+
+# Remove cloud-init when finished with it
+runcmd:
+  - [ yum, -y, remove, cloud-init ]
+
+runcmd:
+  - [ sudo, systemctl, restart, network]
+
+# Configure where output will go
+output:
+  all: ">> /var/log/cloud-init.log"
+
+_EOF_
+
+    echo "instance-id: $1; local-hostname: $1" > $META_DATA
+
+    cp $IMAGE $DISK1
+
+    # Create CD-ROM ISO with cloud-init config
+    genisoimage -output $CI1_ISO -volid cidata -joliet -r $USER_DATA $META_DATA &>> $1.log
+
+    virt-install --import --name $1 --ram $MEM --vcpus $CPUS --disk \
+    $DISK1,format=qcow2,bus=virtio --disk $CI1_ISO,device=cdrom --network \
+    bridge=virbr0,model=virtio --os-type=linux --os-variant=rhel6 --noautoconsole
+
+    MAC=$(virsh dumpxml $1 | awk -F\' '/mac address/ {print $2}')
+    while true
+    do
+        IP=$(grep -B1 $MAC /var/lib/libvirt/dnsmasq/$BRIDGE.status | head \
+             -n 1 | awk '{print $2}' | sed -e s/\"//g -e s/,//)
+        if [ "$IP" = "" ]
+        then
+            sleep 1
+        else
+            break
+        fi
+    done
+
+    # Eject cdrom
+    virsh change-media $1 hda --eject --config >> $1.log
+
+    # Remove the unnecessary cloud init files
+    rm $USER_DATA $CI1_ISO
+
+popd > /dev/null
+
+sleep 3
+
+#######################################################################
+# Second VM
+#######################################################################
+pushd $DIR/$2 > /dev/null
+
+    # Create log file
+    touch $2.log
+
+    # Remove domain with the same name
+    virsh destroy $2 >> $2.log 2>&1
+    virsh undefine $2 >> $2.log 2>&1
+
+    # cloud-init config: set hostname, remove cloud-init package,
+    # and add ssh-key
+    cat > $USER_DATA << _EOF_
+#cloud-config
+
+# Hostname management
+preserve_hostname: False
+hostname: $2
+fqdn: $2.example.local
+
+# User managment
+users:
+  - default
+  - name: centos
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    groups: wheel,adm,systemd-journal
+    ssh_pwauth: True
+    ssh_authorized_keys:
+      - {{ pub_key }} 
+
+# networking
+write_files: 
+- content: |
+      DEVICE=eth0
+      BOOTPROTO=none
+      ONBOOT=yes
+      IPADDR={{ vm2_ip }}
+      NETMASK=255.255.255.0
+      GATEWAY=192.168.122.1
+  path: /etc/sysconfig/network-scripts/ifcfg-eth0
+
+- content: |
+      [main]
+      cachedir=/var/cache/yum/$basearch/$releasever
+      keepcache=0
+      debuglevel=2
+      logfile=/var/log/yum.log
+      exactarch=1
+      obsoletes=1
+      gpgcheck=1
+      plugins=1
+      installonly_limit=5
+      bugtracker_url=http://bugs.centos.org/set_project.php?project_id=23&ref=http://bugs.centos.org/bug_report_page.php?category=yum
+      distroverpkg=centos-release
+      proxy=http://172.22.86.10:8888
+  path: /etc/yum.conf
+
+# Configure where output will go
+output:
+  all: ">> /var/log/cloud-init.log"
+
+# Remove cloud-init when finished with it
+runcmd:
+  - [ yum, -y, remove, cloud-init ]
+
+runcmd:
+  - [ sudo, systemctl, restart, network]
+
+# Configure where output will go
+output:
+  all: ">> /var/log/cloud-init.log"
+
+_EOF_
+
+    echo "instance-id: $2; local-hostname: $2" > $META_DATA
+
+    cp $IMAGE $DISK2
+
+    # Create CD-ROM ISO with cloud-init config
+    genisoimage -output $CI2_ISO -volid cidata -joliet -r $USER_DATA $META_DATA &>> $2.log
+
+    virt-install --import --name $2 --ram $MEM --vcpus $CPUS --disk \
+    $DISK2,format=qcow2,bus=virtio --disk $CI2_ISO,device=cdrom --network \
+    bridge=virbr0,model=virtio --os-type=linux --os-variant=rhel6 --noautoconsole
+
+    MAC=$(virsh dumpxml $2 | awk -F\' '/mac address/ {print $2}')
+    while true
+    do
+        IP=$(grep -B1 $MAC /var/lib/libvirt/dnsmasq/$BRIDGE.status | head \
+             -n 1 | awk '{print $2}' | sed -e s/\"//g -e s/,//)
+        if [ "$IP" = "" ]
+        then
+            sleep 1
+        else
+            break
+        fi
+    done
+
+    # Eject cdrom
+    virsh change-media $2 hda --eject --config >> $2.log
+
+    # Remove the unnecessary cloud init files
+    rm $USER_DATA $CI2_ISO
+
+popd > /dev/null

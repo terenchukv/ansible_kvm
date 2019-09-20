@@ -1,0 +1,60 @@
+---
+ 
+- name: upgrade all packages
+  yum:
+    name: '*'
+    state: latest
+  
+- name: Install yum-utils
+  yum:
+    name: yum-utils
+    state: latest
+
+- name: Install device-mapper-persistent-data
+  yum:
+    name: device-mapper-persistent-data
+    state: latest
+
+- name: Install lvm2
+  yum:
+    name: lvm2
+    state: latest
+
+- name: Setup Docker repository
+  command: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+- name: Install Docker
+  yum:
+    name: docker-ce
+    state: present
+
+- name: Start Docker
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Get docker-compose
+  get_url:
+    url: https://github.com/docker/compose/releases/download/1.21.2/docker-compose-Linux-x86_64
+    dest: /usr/bin/docker-compose
+    mode: '0654'
+
+- name: Create project folders
+  file:
+    path: /opt/wordpress
+    state: directory
+    owner: centos
+    group: centos
+
+- name: Create docker-compose file
+  template:
+    src: templates/docker-compose.j2
+    dest: /opt/wordpress/docker-compose.yaml
+    owner: centos
+    group: centos
+    
+- name: Run docker-compose
+  command: docker-compose up -d
+  args:
+    chdir: /opt/wordpress

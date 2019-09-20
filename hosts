@@ -1,0 +1,10 @@
+[local]
+localhost    ansible_connection=local
+
+[vms]
+vm1
+vm2
+
+[both:child]
+local
+vm
