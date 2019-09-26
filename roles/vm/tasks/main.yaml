@@ -14,4 +14,45 @@
 
 - name: Remove script
   command: rm -f /opt/virt/meta-data/vm_{{ vm1_ip }}_{{ vm2_ip }}.sh
-      
+
+- name: Wait for {{ vm1_ip }} VM
+  wait_for:
+    host: "{{ vm1_ip }}"
+    port: 22
+    delay: 10
+- debug: 
+    msg: "{{ vm1_ip }} are available"
+
+- name: Wait for {{ vm2_ip}} VM
+  wait_for:
+    host: "{{ vm2_ip }}"
+    port: 22
+    delay: 10
+- debug: 
+    msg: "{{ vm2_ip }} are available"
+
+- name: grab {{ vm1_ip }} ssh-key
+  shell: ssh-keyscan -t ECDSA "{{ vm1_ip }}" 
+  register: vm1_ip_ssh
+
+- name: Add {{ vm1_ip }} ssh-key to known hosts
+  lineinfile:
+    dest: ~/.ssh/known_hosts
+    line: "{{ vm1_ip_ssh.stdout }}"
+    regexp: "^{{ vm1_ip }}"
+    insertafter: EOF
+    state: present
+
+- name: grab {{ vm2_ip }} ssh-key
+  shell: ssh-keyscan -t ECDSA "{{ vm2_ip }}" 
+  register: vm2_ip_ssh
+
+- name: Add {{ vm2_ip }} ssh-key to known hosts
+  lineinfile:
+    dest: ~/.ssh/known_hosts
+    line: "{{ vm2_ip_ssh.stdout }}"
+    regexp: "^{{ vm2_ip }}"
+    insertafter: EOF
+    state: present
+
+

@@ -1,0 +1,20 @@
+---
+
+- hosts: local
+  user: root
+
+  name: VM`s creation
+
+  roles:
+    - role: vm
+      vars:
+        pub_key: "{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
+
+- hosts: vms
+  user: centos
+  become: yes
+
+  name: VM`s provisionig
+
+  roles:
+    - docker

@@ -1,8 +1,0 @@
----
-
-- hosts: vms
-  user: centos
-  become: yes
-
-  roles:
-    - docker
