@@ -1,8 +1,7 @@
 ---
+
 - hosts: local
   user: root
-
-- name: MAIN TASK | Installing and Configuring KVM Host
 
   roles:
     - kvm

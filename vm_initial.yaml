@@ -1,21 +1,9 @@
 ---
 
-- name: MAIN TASK | Installing and Provisionig VM`s
-
-- name: vm create
+- hosts: local
   user: root
-  hosts: local
-  roles:
-    - role: roles/vm/tasks/vm_create.yaml
+
+  roles: 
+    - role: vm
       vars:
-        pub_key: "{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
-      vars_files:
-        - roles/vm/vars/vms_vars.yaml
-        - roles/vm/vars/docker_vars.yaml
-
-- name: vm provision
-  user: centos
-  hosts: vms
-  roles:
-    - role: roles/vm/tasks/vm_provision.yaml
-
+         pub_key: "{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"

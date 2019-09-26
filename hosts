@@ -1,10 +1,10 @@
 [local]
-localhost    ansible_connection=local
+127.0.0.1  ansible_connection=local
 
 [vms]
-vm1
-vm2
+192.168.122.12
+192.168.122.13
 
 [both:child]
 local
-vm
+vms
