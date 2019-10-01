@@ -1,0 +1,11 @@
+---
+
+- name: Create nginx config
+  template: 
+    src: templates/vhost.j2
+    dest: /etc/nginx/conf.d/{{ vm1_ip }}.conf
+
+- name: Nginx reload
+  systemd: 
+    name: nginx
+    state: reloaded

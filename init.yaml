@@ -18,3 +18,11 @@
 
   roles:
     - docker
+
+- hosts: local
+  user: root
+
+  name: LB creation 
+
+  roles:
+    - nginx

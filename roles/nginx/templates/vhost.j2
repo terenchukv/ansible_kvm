@@ -1,0 +1,11 @@
+upstream loadbalance {
+    ip_hash;
+    server {{ vm1_ip }}:8000;
+    server {{ vm2_ip }}:8000;
+}
+
+server {
+    location / {
+        proxy_pass http://loadbalance;
+    }
+}
