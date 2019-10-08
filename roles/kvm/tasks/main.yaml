@@ -5,10 +5,21 @@
     path: /etc/sysctl.conf
     line: 'net.ipv4.ip_forward=1'
 
-- name: Proxy configure 
-  lineinfile:
-    path: /etc/environment
-    line: 'http_proxy=172.22.86.10:8888'
+# - name: Proxy configure 
+#   lineinfile:
+#     path: /etc/environment
+#     line: 'http_proxy=172.22.86.10:8888'
+
+- name: Open http port
+  firewalld:
+    service: http
+    permanent: yes
+    state: enabled
+
+- name: Put SELinux in permissive mode
+  selinux:
+    policy: targeted
+    state: permissive
 
 - name: Upgrade all packages
   yum:
@@ -17,7 +28,7 @@
 
 - name: add Nginx repo
   copy: 
-    src: roles/common/files/nginx.repo
+    src: files/nginx.repo
     dest: /etc/yum.repos.d/nginx.repo
     force: no
 
@@ -62,6 +73,8 @@
     dest: /opt/virt/images
     owner: qemu
     group: qemu
+  environment:
+    http_proxy: http://172.22.86.10:8888
       
 - name: Decompress image
   command: xz --decompress CentOS-7-x86_64-GenericCloud.qcow2.xz
