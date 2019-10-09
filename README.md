@@ -5,6 +5,16 @@
 # REQUIREMENTS
 - Ansible 2.8
 
+# USAGE
+- For initial host configuration and common software installation use ```kvm_initial``` plybook
+```
+ansible-playbook -i hosts kvm_initial.yaml
+```
+
+- For VM`s deploy and provisionig use ```init.yaml```
+```
+ansible-playbook -i hosts kvm_init.yaml
+```
 
 
 

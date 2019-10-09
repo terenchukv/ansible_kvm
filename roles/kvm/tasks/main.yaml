@@ -5,16 +5,12 @@
     path: /etc/sysctl.conf
     line: 'net.ipv4.ip_forward=1'
 
-# - name: Proxy configure 
-#   lineinfile:
-#     path: /etc/environment
-#     line: 'http_proxy=172.22.86.10:8888'
-
 - name: Open http port
   firewalld:
     service: http
     permanent: yes
     state: enabled
+    immediate: yes
 
 - name: Put SELinux in permissive mode
   selinux:
@@ -66,6 +62,27 @@
     - /opt/virt
     - /opt/virt/images
     - /opt/virt/meta-data
+
+- name: Check that id_rsa keys exists
+  stat:
+    path: ~/.ssh/id_rsa
+  register: id_rsa
+
+- name: Generate id_rsa keys, if doesn`t exist
+  shell: echo -e "\n\n\n" | ssh-keygen -q -t rsa -N '' >/dev/null
+  when: id_rsa.stat.exists == False
+
+- name: Check that known_hosts exists
+  stat:
+    path: ~/.ssh/known_hosts
+  register: known_hosts
+
+- name: Create known_hosts file, if doesn`t exist 
+  file:
+    path: ~/.ssh/known_hosts
+    state: touch
+    mode: '0644'
+  when: known_hosts.stat.exists == False
 
 - name: Get cloud image
   get_url:
