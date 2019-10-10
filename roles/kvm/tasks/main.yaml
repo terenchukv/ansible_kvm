@@ -17,6 +17,11 @@
     policy: targeted
     state: permissive
 
+- name: Proxy configure 
+  lineinfile:
+    path: /etc/environment
+    line: 'http_proxy=172.22.86.10:8888'
+
 - name: Upgrade all packages
   yum:
     name: '*'
